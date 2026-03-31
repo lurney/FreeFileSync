@@ -58,6 +58,7 @@ jobs:
             ./configure \
               --prefix=/usr/local \
               --disable-shared \
+              --enable-no_exceptions \
               --with-gtk=3 \
               --without-wayland \
               --without-opengl
@@ -111,7 +112,7 @@ jobs:
             wget -q https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.2/wxWidgets-3.3.2.tar.bz2
             tar xf wxWidgets-3.3.2.tar.bz2
             cd wxWidgets-3.3.2
-            ./configure --prefix=/usr/local --disable-shared --with-gtk=3 --without-wayland --without-opengl
+            ./configure --prefix=/usr/local --disable-shared --enable-no_exceptions --with-gtk=3 --without-wayland --without-opengl
             make -j\$(nproc)
             make install
             ldconfig
