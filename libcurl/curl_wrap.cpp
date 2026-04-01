@@ -325,11 +325,15 @@ std::wstring zen::formatCurlStatusCode(CURLcode sc)
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_FTP_COULDNT_SET_TYPE);
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_PARTIAL_FILE);
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_FTP_COULDNT_RETR_FILE);
+            #ifdef CURLE_OBSOLETE20
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_OBSOLETE20);
+            #endif
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_QUOTE_ERROR);
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_HTTP_RETURNED_ERROR);
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_WRITE_ERROR);
+            #ifdef CURLE_OBSOLETE24
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_OBSOLETE24);
+            #endif
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_UPLOAD_FAILED);
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_READ_ERROR);
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_OUT_OF_MEMORY);
@@ -439,7 +443,9 @@ std::wstring zen::formatCurlStatusCode(CURLcode sc)
             #endif
             ZEN_CHECK_CASE_FOR_CONSTANT(CURL_LAST);
     }
+    #ifdef CURLE_ECH_REQUIRED
     static_assert(CURL_LAST == CURLE_ECH_REQUIRED + 1);
+    #endif
 
     return replaceCpy<std::wstring>(L"Curl status %x", L"%x", numberTo<std::wstring>(static_cast<int>(sc)));
 }
