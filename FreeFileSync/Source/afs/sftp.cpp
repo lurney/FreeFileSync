@@ -6,6 +6,15 @@
 
 #include "sftp.h"
 #include <array>
+
+// libssh2 constants not exposed in public headers - define them manually
+#ifndef MAX_SFTP_READ_SIZE
+#define MAX_SFTP_READ_SIZE 30000
+#endif
+#ifndef MAX_SFTP_OUTGOING_SIZE
+#define MAX_SFTP_OUTGOING_SIZE 30000
+#endif
+
 #include <zen/sys_error.h>
 #include <zen/thread.h>
 #include <zen/globals.h>
