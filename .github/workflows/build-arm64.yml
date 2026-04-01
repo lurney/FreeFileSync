@@ -70,13 +70,9 @@ jobs:
             ldconfig
             
             # ===== 编译 FreeFileSync =====
-            echo '=== Downloading FreeFileSync ==='
-            cd /tmp
-            wget -q https://freefilesync.org/download/FreeFileSync_14.9_Source.zip
-            unzip -q FreeFileSync_14.9_Source.zip
-            
+            # 使用 git 仓库中的源码（已包含我们的修改）
             echo '=== Building FreeFileSync ==='
-            cd FreeFileSync/Source
+            cd /workspace/FreeFileSync/Source
             make -j\$(nproc)
             
             echo '=== Build Results ==='
@@ -116,11 +112,8 @@ jobs:
             make install
             ldconfig
             
-            # 编译 FreeFileSync
-            cd /tmp
-            wget -q https://freefilesync.org/download/FreeFileSync_14.9_Source.zip
-            unzip -q FreeFileSync_14.9_Source.zip
-            cd FreeFileSync/Source
+            # 编译 FreeFileSync - 使用 git 仓库中的源码
+            cd /workspace/FreeFileSync/Source
             make -j\$(nproc)
             
             # 复制结果
