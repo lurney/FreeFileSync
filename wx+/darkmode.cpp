@@ -7,6 +7,7 @@
 #include "darkmode.h"
 #include <zen/sys_version.h>
 #include <wx/settings.h>
+#include <wx/colour.h>
 #include "color_tools.h"
     #include <gtk/gtk.h>
 
