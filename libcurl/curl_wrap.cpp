@@ -434,7 +434,9 @@ std::wstring zen::formatCurlStatusCode(CURLcode sc)
             #ifdef CURLE_TOO_LARGE
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_TOO_LARGE);
             #endif
+            #ifdef CURLE_ECH_REQUIRED
             ZEN_CHECK_CASE_FOR_CONSTANT(CURLE_ECH_REQUIRED);
+            #endif
             ZEN_CHECK_CASE_FOR_CONSTANT(CURL_LAST);
     }
     static_assert(CURL_LAST == CURLE_ECH_REQUIRED + 1);
