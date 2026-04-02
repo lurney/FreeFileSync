@@ -75,14 +75,20 @@ jobs:
             make install
             ldconfig
             
+            # 验证 wxWidgets 安装
+            echo '=== Verifying wxWidgets installation ==='
+            /usr/local/bin/wx-config --version
+            /usr/local/bin/wx-config --cxxflags | grep colour
+            
+            # 检查 wxColorHook 是否在头文件中
+            echo '=== Checking for wxColorHook ==='
+            grep -r "wxColorHook" /usr/local/include/wx/ 2>/dev/null | head -5 || echo 'wxColorHook not found in headers'
+            
             # ===== 编译 FreeFileSync =====
-            # 使用 git 仓库中的源码（已包含我们的修改）
             echo '=== Building FreeFileSync ==='
             cd /workspace/FreeFileSync/Source
             
-            # 确保使用 /usr/local/bin/wx-config (我们自己编译的 wxWidgets 3.3.2)
-            export PATH=\"/usr/local/bin:\$PATH\"
-            
+            # 使用 /usr/local/bin/wx-config
             make -j\$(nproc) WX_CONFIG=/usr/local/bin/wx-config
             
             echo '=== Build Results ==='
@@ -128,12 +134,17 @@ jobs:
             make install
             ldconfig
             
-            # 编译 FreeFileSync - 使用 git 仓库中的源码
+            # 验证 wxWidgets 安装
+            echo '=== Verifying wxWidgets installation ==='
+            /usr/local/bin/wx-config --version
+            /usr/local/bin/wx-config --cxxflags | grep colour
+            
+            # 检查 wxColorHook 是否在头文件中
+            echo '=== Checking for wxColorHook ==='
+            grep -r "wxColorHook" /usr/local/include/wx/ 2>/dev/null | head -5 || echo 'wxColorHook not found in headers'
+            
+            # 编译 FreeFileSync
             cd /workspace/FreeFileSync/Source
-            
-            # 确保使用 /usr/local/bin/wx-config (我们自己编译的 wxWidgets 3.3.2)
-            export PATH=\"/usr/local/bin:\$PATH\"
-            
             make -j\$(nproc) WX_CONFIG=/usr/local/bin/wx-config
             
             # 复制结果
