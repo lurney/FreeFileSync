@@ -39,7 +39,6 @@ jobs:
             set -e
             export DEBIAN_FRONTEND=noninteractive
             
-            # 安装编译依赖 (GCC 14 for C++23 support)
             apt-get update
             apt-get install -y \
               software-properties-common \
@@ -55,7 +54,6 @@ jobs:
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
             update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
             
-            # ===== 编译 wxWidgets 3.3.2 =====
             echo '=== Downloading wxWidgets 3.3.2 ==='
             cd /tmp
             wget -q https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.2/wxWidgets-3.3.2.tar.bz2
@@ -77,19 +75,15 @@ jobs:
             make install
             ldconfig
             
-            # ===== 编译 FreeFileSync =====
             echo '=== Building FreeFileSync ==='
             cd /workspace/FreeFileSync/Source
             make -j\$(nproc) WX_CONFIG=/usr/local/bin/wx-config
             
             echo '=== Build Results ==='
             mkdir -p /output
-            
-            # 复制主程序
             cp -v ../Build/Bin/FreeFileSync /output/ 2>/dev/null || true
             cp -v ../Build/Bin/RealTimeSync /output/ 2>/dev/null || true
             
-            # 收集所有需要的动态库
             echo '=== Collecting shared libraries ==='
             mkdir -p /output/libs
             for lib in \$(ldd ../Build/Bin/FreeFileSync 2>/dev/null | grep '=>' | awk '{print \$3}' | grep -v '^$' | grep -v '/linux' | grep -v 'not'); do
@@ -97,8 +91,6 @@ jobs:
                 cp -v \"\$lib\" /output/libs/ 2>/dev/null || true
               fi
             done
-            
-            # 也复制 wxWidgets 的库
             cp -v /usr/local/lib/*.so* /output/libs/ 2>/dev/null || true
             
             ls -la /output/
@@ -112,53 +104,22 @@ jobs:
         mkdir -p arm64-build/deb/usr/bin
         mkdir -p arm64-build/deb/usr/lib/freefilesync
         mkdir -p arm64-build/deb/usr/share/applications
-        mkdir -p arm64-build/deb/usr/share/icons/hicolor/48x48/apps
         
-        # 复制程序和库
         cp -v arm64-build/FreeFileSync arm64-build/deb/usr/bin/ 2>/dev/null || true
         cp -v arm64-build/RealTimeSync arm64-build/deb/usr/bin/ 2>/dev/null || true
         cp -v arm64-build/libs/* arm64-build/deb/usr/lib/freefilesync/ 2>/dev/null || true
         
-        # 创建 control 文件
-        cat > arm64-build/deb/DEBIAN/control << 'EOF'
-Package: freefilesync
-Version: 14.9
-Section: utils
-Priority: optional
-Architecture: arm64
-Depends: libcurl4, libssl3, libgtk-3-0, libstdc++6
-Maintainer: lurney
-Description: FreeFileSync ARM64 Build
- FreeFileSync is a folder comparison and synchronization tool.
-EOF
+        printf 'Package: freefilesync\nVersion: 14.9\nSection: utils\nPriority: optional\nArchitecture: arm64\nDepends: libcurl4, libssl3, libgtk-3-0, libstdc++6\nMaintainer: lurney\nDescription: FreeFileSync ARM64 Build\n' > arm64-build/deb/DEBIAN/control
         
-        # 创建 postinst 脚本（设置权限）
-        cat > arm64-build/deb/DEBIAN/postinst << 'EOF'
-#!/bin/bash
-chmod +x /usr/bin/FreeFileSync
-chmod +x /usr/bin/RealTimeSync
-ldconfig
-EOF
+        printf '#!/bin/bash\nchmod +x /usr/bin/FreeFileSync\nchmod +x /usr/bin/RealTimeSync\nldconfig\n' > arm64-build/deb/DEBIAN/postinst
         chmod +x arm64-build/deb/DEBIAN/postinst
         
-        # 创建 desktop 文件
-        cat > arm64-build/deb/usr/share/applications/freefilesync.desktop << 'EOF'
-[Desktop Entry]
-Type=Application
-Name=FreeFileSync
-Comment=Folder Comparison and Synchronization
-Exec=/usr/bin/FreeFileSync
-Icon=freefilesync
-Terminal=false
-Categories=Utility;FileTools;
-EOF
+        printf '[Desktop Entry]\nType=Application\nName=FreeFileSync\nComment=Folder Comparison and Synchronization\nExec=/usr/bin/FreeFileSync\nIcon=freefilesync\nTerminal=false\nCategories=Utility;FileTools;\n' > arm64-build/deb/usr/share/applications/freefilesync.desktop
         
         echo "=== DEB Package Structure ==="
         find arm64-build/deb -type f | head -20
         
-        # 打包
         dpkg-deb --build --root-owner-group arm64-build/deb arm64-build/freefilesync_14.9_arm64.deb 2>&1
-        
         ls -la arm64-build/*.deb
 
     - name: Upload DEB Package
@@ -191,11 +152,11 @@ EOF
         body: |
           FreeFileSync ARM64 Build
           
-          📦 Package: freefilesync_14.9_arm64.deb
+          Package: freefilesync_14.9_arm64.deb
           
           Built from commit: ${{ github.sha }}
           Build date: ${{ github.event.head_commit.timestamp }}
           
-          🛠️ Note: This build has dark mode temporarily disabled due to wxWidgets compatibility issues.
+          Note: This build has dark mode temporarily disabled due to wxWidgets compatibility issues.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
