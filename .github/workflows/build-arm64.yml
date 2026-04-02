@@ -79,7 +79,11 @@ jobs:
             # 使用 git 仓库中的源码（已包含我们的修改）
             echo '=== Building FreeFileSync ==='
             cd /workspace/FreeFileSync/Source
-            make -j\$(nproc)
+            
+            # 确保使用 /usr/local/bin/wx-config (我们自己编译的 wxWidgets 3.3.2)
+            export PATH=\"/usr/local/bin:\$PATH\"
+            
+            make -j\$(nproc) WX_CONFIG=/usr/local/bin/wx-config
             
             echo '=== Build Results ==='
             ls -la ../Build/Bin/
@@ -126,7 +130,11 @@ jobs:
             
             # 编译 FreeFileSync - 使用 git 仓库中的源码
             cd /workspace/FreeFileSync/Source
-            make -j\$(nproc)
+            
+            # 确保使用 /usr/local/bin/wx-config (我们自己编译的 wxWidgets 3.3.2)
+            export PATH=\"/usr/local/bin:\$PATH\"
+            
+            make -j\$(nproc) WX_CONFIG=/usr/local/bin/wx-config
             
             # 复制结果
             mkdir -p /output
