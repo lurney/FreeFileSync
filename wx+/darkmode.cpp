@@ -7,11 +7,13 @@
 #include "darkmode.h"
 #include <zen/sys_version.h>
 #include <wx/settings.h>
-#include <wx/colour.h>
 #include "color_tools.h"
     #include <gtk/gtk.h>
 
 using namespace zen;
+
+
+std::optional<bool> globalDefaultThemeIsDark;
 
 
 bool zen::darkModeAvailable()
@@ -21,41 +23,9 @@ bool zen::darkModeAvailable()
 }
 
 
-namespace
-{
-class SysColorsHook : public wxColorHook
-{
-public:
-
-    wxColor getColor(wxSystemColour index) const override
-    {
-        //fix contrast e.g. Ubuntu's Adwaita-Dark theme and macOS dark mode:
-        if (index == wxSYS_COLOUR_GRAYTEXT)
-            return colGreyTextEnhContrast_;
-#if 0
-        auto colToString = [](wxColor c) { return utfTo<std::string>(c.GetAsString(wxC2S_HTML_SYNTAX)); /* #RRGGBB(AA) */ };
-        std::cerr << "wxSYS_COLOUR_GRAYTEXT " << colToString(wxSystemSettingsNative::GetColour(wxSYS_COLOUR_GRAYTEXT)) << "\n";
-#endif
-        return wxSystemSettingsNative::GetColour(index); //fallback
-    }
-
-private:
-    const wxColor colGreyTextEnhContrast_ =
-        enhanceContrast(wxSystemSettingsNative::GetColour(wxSYS_COLOUR_GRAYTEXT),
-                        wxSystemSettingsNative::GetColour(wxSYS_COLOUR_WINDOW), 4.5 /*contrastRatioMin*/); //W3C recommends >= 4.5
-};
-
-
-std::optional<bool> globalDefaultThemeIsDark;
-}
-
-
 void zen::colorThemeInit(wxApp& app, ColorTheme colTheme) //throw FileError
 {
-    assert(!refGlobalColorHook());
-
     globalDefaultThemeIsDark = wxSystemSettings::GetAppearance().AreAppsDark();
-    ZEN_ON_SCOPE_EXIT(if (!refGlobalColorHook()) refGlobalColorHook() = std::make_unique<SysColorsHook>()); //*after* SetAppearance() and despite errors
 
     //caveat: on macOS there are more themes than light/dark: https://developer.apple.com/documentation/appkit/nsappearance/name-swift.struct
     if (colTheme != ColorTheme::System && //"System" is already the default for macOS/Linux(GTK3)
@@ -66,8 +36,7 @@ void zen::colorThemeInit(wxApp& app, ColorTheme colTheme) //throw FileError
 
 void zen::colorThemeCleanup()
 {
-    assert(refGlobalColorHook());
-    refGlobalColorHook().reset();
+    //nothing to do without color hook
 }
 
 
@@ -86,7 +55,6 @@ void zen::changeColorTheme(ColorTheme colTheme) //throw FileError
 
     try
     {
-        ZEN_ON_SCOPE_SUCCESS(refGlobalColorHook() = std::make_unique<SysColorsHook>()); //*after* SetAppearance()
         if (wxApp::AppearanceResult rv = wxTheApp->SetAppearance(colTheme);
             rv != wxApp::AppearanceResult::Ok)
             throw SysError(formatSystemError("wxApp::SetAppearance",
