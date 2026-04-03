@@ -94,9 +94,13 @@ jobs:
             echo '=== Build Results ==='
             mkdir -p /output
             
-            # Try multiple possible locations
-            if [ -f '../Build/Bin/FreeFileSync' ]; then
+            # Try multiple possible locations and names
+            if [ -f '../Build/Bin/FreeFileSync_aarch64' ]; then
+              cp -v ../Build/Bin/FreeFileSync_aarch64 /output/FreeFileSync
+            elif [ -f '../Build/Bin/FreeFileSync' ]; then
               cp -v ../Build/Bin/FreeFileSync /output/
+            elif [ -f './Build/Bin/FreeFileSync_aarch64' ]; then
+              cp -v ./Build/Bin/FreeFileSync_aarch64 /output/FreeFileSync
             elif [ -f './Build/Bin/FreeFileSync' ]; then
               cp -v ./Build/Bin/FreeFileSync /output/
             else
