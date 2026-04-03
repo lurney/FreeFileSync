@@ -26,7 +26,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build and Copy ARM64 Binary
+    - name: Build and Package ARM64
       id: build
       run: |
         docker run --rm \
@@ -42,15 +42,15 @@ jobs:
             apt-get update
             apt-get install -y \
               software-properties-common \
-              dpkg-dev
-            add-apt-repository -y ppa:ubuntu-toolchain-r/test
-            apt-get update
-            apt-get install -y \
-              gcc-14 g++-14 make pkg-config \
+              dpkg-dev debhelper fakeroot \
               libssl-dev libcurl4-openssl-dev \
               libidn2-dev libssh2-1-dev \
               libgtk-3-dev libselinux1-dev \
-              wget curl unzip bzip2 fakeroot
+              wget curl unzip bzip2
+            add-apt-repository -y ppa:ubuntu-toolchain-r/test
+            apt-get update
+            apt-get install -y \
+              gcc-14 g++-14 make pkg-config
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
             update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
             
@@ -93,34 +93,35 @@ jobs:
             done
             cp -v /usr/local/lib/*.so* /output/libs/ 2>/dev/null || true
             
-            ls -la /output/
-            ls -la /output/libs/ 2>/dev/null || true
+            echo '=== Creating DEB Package ==='
+            cd /output
+            
+            # Create DEB package structure
+            mkdir -p deb/DEBIAN
+            mkdir -p deb/usr/bin
+            mkdir -p deb/usr/lib/freefilesync
+            mkdir -p deb/usr/share/applications
+            
+            cp -v FreeFileSync deb/usr/bin/ 2>/dev/null || true
+            cp -v RealTimeSync deb/usr/bin/ 2>/dev/null || true
+            cp -v libs/* deb/usr/lib/freefilesync/ 2>/dev/null || true
+            
+            printf 'Package: freefilesync\nVersion: 14.9\nSection: utils\nPriority: optional\nArchitecture: arm64\nDepends: libcurl4, libssl3, libgtk-3-0, libstdc++6\nMaintainer: lurney\nDescription: FreeFileSync ARM64 Build\n' > deb/DEBIAN/control
+            
+            printf '#!/bin/bash\nchmod +x /usr/bin/FreeFileSync\nchmod +x /usr/bin/RealTimeSync\nldconfig\n' > deb/DEBIAN/postinst
+            chmod +x deb/DEBIAN/postinst
+            
+            printf '[Desktop Entry]\nType=Application\nName=FreeFileSync\nComment=Folder Comparison and Synchronization\nExec=/usr/bin/FreeFileSync\nIcon=freefilesync\nTerminal=false\nCategories=Utility;FileTools;\n' > deb/usr/share/applications/freefilesync.desktop
+            
+            echo '=== DEB Package Structure ==='
+            find deb -type f | head -20
+            
+            # Fix ownership before building
+            chown -R root:root deb/
+            
+            dpkg-deb --build --root-owner-group deb freefilesync_14.9_arm64.deb 2>&1
+            ls -la *.deb
           "
-
-    - name: Create DEB Package
-      id: deb
-      run: |
-        mkdir -p arm64-build/deb/DEBIAN
-        mkdir -p arm64-build/deb/usr/bin
-        mkdir -p arm64-build/deb/usr/lib/freefilesync
-        mkdir -p arm64-build/deb/usr/share/applications
-        
-        cp -v arm64-build/FreeFileSync arm64-build/deb/usr/bin/ 2>/dev/null || true
-        cp -v arm64-build/RealTimeSync arm64-build/deb/usr/bin/ 2>/dev/null || true
-        cp -v arm64-build/libs/* arm64-build/deb/usr/lib/freefilesync/ 2>/dev/null || true
-        
-        printf 'Package: freefilesync\nVersion: 14.9\nSection: utils\nPriority: optional\nArchitecture: arm64\nDepends: libcurl4, libssl3, libgtk-3-0, libstdc++6\nMaintainer: lurney\nDescription: FreeFileSync ARM64 Build\n' > arm64-build/deb/DEBIAN/control
-        
-        printf '#!/bin/bash\nchmod +x /usr/bin/FreeFileSync\nchmod +x /usr/bin/RealTimeSync\nldconfig\n' > arm64-build/deb/DEBIAN/postinst
-        chmod +x arm64-build/deb/DEBIAN/postinst
-        
-        printf '[Desktop Entry]\nType=Application\nName=FreeFileSync\nComment=Folder Comparison and Synchronization\nExec=/usr/bin/FreeFileSync\nIcon=freefilesync\nTerminal=false\nCategories=Utility;FileTools;\n' > arm64-build/deb/usr/share/applications/freefilesync.desktop
-        
-        echo "=== DEB Package Structure ==="
-        find arm64-build/deb -type f | head -20
-        
-        dpkg-deb --build --root-owner-group arm64-build/deb arm64-build/freefilesync_14.9_arm64.deb 2>&1
-        ls -la arm64-build/*.deb
 
     - name: Upload DEB Package
       uses: actions/upload-artifact@v4
