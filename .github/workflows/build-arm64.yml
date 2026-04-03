@@ -46,7 +46,7 @@ jobs:
               libssl-dev libcurl4-openssl-dev \
               libidn2-dev libssh2-1-dev \
               libgtk-3-dev libselinux1-dev \
-              wget curl unzip bzip2
+              wget curl unzip bzip2 file tree
             add-apt-repository -y ppa:ubuntu-toolchain-r/test
             apt-get update
             apt-get install -y \
@@ -79,22 +79,58 @@ jobs:
             cd /workspace/FreeFileSync/Source
             make -j\$(nproc) WX_CONFIG=/usr/local/bin/wx-config
             
+            echo '=== Checking Build Output ==='
+            echo 'Contents of ../Build:'
+            ls -la ../Build/ 2>/dev/null || echo 'Build dir not found'
+            echo 'Contents of ../Build/Bin:'
+            ls -la ../Build/Bin/ 2>/dev/null || echo 'Bin dir not found'
+            echo 'Contents of current directory:'
+            ls -la
+            
+            echo '=== Finding FreeFileSync Binary ==='
+            find /workspace -name 'FreeFileSync' -type f 2>/dev/null || echo 'FreeFileSync not found'
+            find /workspace -name 'RealTimeSync' -type f 2>/dev/null || echo 'RealTimeSync not found'
+            
             echo '=== Build Results ==='
             mkdir -p /output
-            cp -v ../Build/Bin/FreeFileSync /output/ 2>/dev/null || true
-            cp -v ../Build/Bin/RealTimeSync /output/ 2>/dev/null || true
+            
+            # Try multiple possible locations
+            if [ -f '../Build/Bin/FreeFileSync' ]; then
+              cp -v ../Build/Bin/FreeFileSync /output/
+            elif [ -f './Build/Bin/FreeFileSync' ]; then
+              cp -v ./Build/Bin/FreeFileSync /output/
+            else
+              echo 'ERROR: FreeFileSync binary not found!'
+              exit 1
+            fi
+            
+            if [ -f '../Build/Bin/RealTimeSync' ]; then
+              cp -v ../Build/Bin/RealTimeSync /output/
+            elif [ -f './Build/Bin/RealTimeSync' ]; then
+              cp -v ./Build/Bin/RealTimeSync /output/
+            else
+              echo 'WARNING: RealTimeSync binary not found'
+            fi
             
             echo '=== Collecting shared libraries ==='
             mkdir -p /output/libs
-            for lib in \$(ldd ../Build/Bin/FreeFileSync 2>/dev/null | grep '=>' | awk '{print \$3}' | grep -v '^$' | grep -v '/linux' | grep -v 'not'); do
-              if [ -f \"\$lib\" ]; then
-                cp -v \"\$lib\" /output/libs/ 2>/dev/null || true
-              fi
-            done
+            if [ -f '/output/FreeFileSync' ]; then
+              for lib in \$(ldd /output/FreeFileSync 2>/dev/null | grep '=>' | awk '{print \$3}' | grep -v '^$' | grep -v '/linux' | grep -v 'not'); do
+                if [ -f \"\$lib\" ]; then
+                  cp -v \"\$lib\" /output/libs/ 2>/dev/null || true
+                fi
+              done
+            fi
             cp -v /usr/local/lib/*.so* /output/libs/ 2>/dev/null || true
             
             echo '=== Creating DEB Package ==='
             cd /output
+            
+            # Verify binaries exist
+            if [ ! -f 'FreeFileSync' ]; then
+              echo 'ERROR: FreeFileSync binary not in /output!'
+              exit 1
+            fi
             
             # Create DEB package structure
             mkdir -p deb/DEBIAN
@@ -102,8 +138,10 @@ jobs:
             mkdir -p deb/usr/lib/freefilesync
             mkdir -p deb/usr/share/applications
             
-            cp -v FreeFileSync deb/usr/bin/ 2>/dev/null || true
-            cp -v RealTimeSync deb/usr/bin/ 2>/dev/null || true
+            cp -v FreeFileSync deb/usr/bin/
+            if [ -f 'RealTimeSync' ]; then
+              cp -v RealTimeSync deb/usr/bin/
+            fi
             cp -v libs/* deb/usr/lib/freefilesync/ 2>/dev/null || true
             
             printf 'Package: freefilesync\nVersion: 14.9\nSection: utils\nPriority: optional\nArchitecture: arm64\nDepends: libcurl4, libssl3, libgtk-3-0, libstdc++6\nMaintainer: lurney\nDescription: FreeFileSync ARM64 Build\n' > deb/DEBIAN/control
@@ -114,13 +152,15 @@ jobs:
             printf '[Desktop Entry]\nType=Application\nName=FreeFileSync\nComment=Folder Comparison and Synchronization\nExec=/usr/bin/FreeFileSync\nIcon=freefilesync\nTerminal=false\nCategories=Utility;FileTools;\n' > deb/usr/share/applications/freefilesync.desktop
             
             echo '=== DEB Package Structure ==='
-            find deb -type f | head -20
+            find deb -type f -exec ls -lh {} \;
+            du -sh deb/
             
             # Fix ownership before building
             chown -R root:root deb/
             
             dpkg-deb --build --root-owner-group deb freefilesync_14.9_arm64.deb 2>&1
-            ls -la *.deb
+            ls -lh *.deb
+            file *.deb
           "
 
     - name: Upload DEB Package
